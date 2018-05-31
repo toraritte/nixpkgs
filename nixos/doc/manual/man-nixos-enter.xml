@@ -101,7 +101,14 @@
    <filename>/mnt</filename>:
   </para>
 <screen>
-# nixos-enter /mnt
+# nixos-enter
+</screen>
+  <para>
+   Start an interactive shell in the NixOS installation mounted on
+   <filename>/nixos-mnt</filename>:
+  </para>
+<screen>
+# nixos-enter --root /nixos-mnt
 </screen>
   <para>
    Run a shell command:
