@@ -1,6 +1,6 @@
 { pkgs, modulesPath, ... }:
 
-let username = "azurenixosuser";
+let username = "freeswitch";
 in
 {
   imports = [
@@ -14,10 +14,12 @@ in
   users.users."${username}" = {
     isNormalUser = true;
     home = "/home/${username}";
-    description = "Azure NixOS Test User";
-    openssh.authorizedKeys.keys = [ (builtins.readFile ~/.ssh/id_ed25519.pub) ];
+    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+  # description = "Azure NixOS Test User";
+  # openssh.authorizedKeys.keys = [ (builtins.readFile ~/.ssh/id_ed25519.pub) ];
   };
-  nix.trustedUsers = [ username ];
+  # nix.trustedUsers = [ username ];
+  nix.trustedUsers = [ "@wheel" ];
 
   virtualisation.azureImage.diskSize = 2500;
 
@@ -29,6 +31,8 @@ in
   security.sudo.wheelNeedsPassword = false;
 
   environment.systemPackages = with pkgs; [
-    git file htop wget curl
+    git file htop wget curl vim freeswitch
   ];
+  
+  services.freeswitch.enable = true;
 }
