@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
-set -euxo pipefail
 
+####################################################
+# HELPERS                                          #
+####################################################
 show_id() {
   az $1 show \
     --resource-group "${group}" \
@@ -25,6 +26,10 @@ usage() {
   echo '                    Default value: "westus2".'
 }
  
+####################################################
+# SWITCHES                                         #
+####################################################
+
 # https://unix.stackexchange.com/a/204927/85131
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -64,17 +69,25 @@ then
   exit 1
 fi
 
+####################################################
+# AZ LOGIN and BUILD THE IMAGE                     #
+####################################################
+
 # Making  sure  that  one   is  logged  in  (to  avoid
-# surprises during the build).
+# surprises down the line).
 if [ $(az account list 2> /dev/null) = [] ];
 then
-  az login
+  echo
+  echo '********************************************************'
+  echo '* Please log  in to  Azure by  typing "az  login", and *'
+  echo '* repeat the "./upload-image.sh" command.              *'
+  echo '********************************************************'
+  exit 1
 fi
 
 nix-build                                 \
   --out-link "azure"                      \
   "${image_nix:-"./examples/basic/image.nix"}"
-# nix-build "${image_nix}" --out-link "azure"
 
 if ! az group show --resource-group "${group}" &>/dev/null;
 then
@@ -83,9 +96,17 @@ then
     --location "${location:-"westus2"}"
 fi
 
-# note: the disk access token song/dance is tedious
-# but allows us to upload direct to a disk image
-# thereby avoid storage accounts (and naming them) entirely!
+####################################################
+# PUT IMAGE INTO AZURE CLOUD                       #
+####################################################
+
+# https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+set -euxo pipefail
+
+# NOTE: The  disk   access  token   song/dance  is
+#       tedious  but allows  us  to upload  direct
+#       to  a  disk  image thereby  avoid  storage
+#       accounts (and naming them) entirely!
 
 if ! show_id "disk" &>/dev/null;
 then
@@ -114,9 +135,7 @@ then
   azcopy copy "${img_file}" "${sasurl}" \
     --blob-type PageBlob 
     
-  # See public hypothes.is comment at
   # https://docs.microsoft.com/en-us/cli/azure/disk?view=azure-cli-latest#az-disk-revoke-access
-  # but the gist is that
   # > Revoking the SAS will  change the state of
   # > the managed  disk and allow you  to attach
   # > the disk to a VM.
