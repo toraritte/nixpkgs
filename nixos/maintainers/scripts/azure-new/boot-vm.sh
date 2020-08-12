@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 
 ####################################################
+# AZ LOGIN CHECK                                   #
+####################################################
+
+# Making  sure  that  one   is  logged  in  (to  avoid
+# surprises down the line).
+if [ $(az account list 2> /dev/null) == [] ]
+then
+  echo
+  echo '********************************************************'
+  echo '* Please log  in to  Azure by  typing "az  login", and *'
+  echo '* repeat the "./upload-image.sh" command.              *'
+  echo '********************************************************'
+  exit 1
+fi
+
+####################################################
 # HELPERS                                          #
 ####################################################
 
@@ -19,9 +35,9 @@ usage() {
   echo '                             house a new disk and the created'
   echo '                             image.'
   echo ''
-  echo '-i --image-id       REQUIRED ID of an existing image.'
+  echo '-i --image          REQUIRED ID or name of an existing image.'
   echo '                             (See `az image list --output table`)'
-  echo '                              and `az image list --query "[].{ID:id, Name:name}"`.)'
+  echo '                              or  `az image list --query "[].{ID:id, Name:name}"`.)'
   echo ''
   echo '-n --vm-name        REQUIRED The name of the new virtual machine'
   echo '                             to be created.'
@@ -54,8 +70,18 @@ while [ $# -gt 0 ]; do
     -g|--resource-group)
       resource_group="$2"
       ;;
-    -i|--image-id)
-      img_id="$2"
+    -i|--image)
+      case "$2" in
+        /*)
+          img_id="$2"
+        *)  # image name
+          img_id="$(az $1 show \
+            --resource-group "${resource_group}" \
+            --name "$2"                          \
+            --query "[id]"                       \
+            --output tsv
+          )"
+       esac
       ;;
     -n|--vm-name)
       vm_name="$2"
@@ -94,22 +120,6 @@ location_d="${location:-"westus2"}"
 os_size_d="${vm_size:-"42"}"
 vm_size_d="${os_size:-"Standard_DS1_v2"}"
       
-####################################################
-# AZ LOGIN CHECK                                   #
-####################################################
-
-# Making  sure  that  one   is  logged  in  (to  avoid
-# surprises down the line).
-if [ $(az account list 2> /dev/null) == [] ]
-then
-  echo
-  echo '********************************************************'
-  echo '* Please log  in to  Azure by  typing "az  login", and *'
-  echo '* repeat the "./upload-image.sh" command.              *'
-  echo '********************************************************'
-  exit 1
-fi
-
 # https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 set -euxo pipefail
 

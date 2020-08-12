@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 
 ####################################################
+# AZ LOGIN CHECK                                   #
+####################################################
+
+# Making  sure  that  one   is  logged  in  (to  avoid
+# surprises down the line).
+# TODO Works flawlessly when  not logged in, but shows
+#      error when do logged in.
+#      > ./upload-image.sh: line 126: [: too many arguments
+if [ $(az account list 2> /dev/null) = [] ]
+then
+  echo
+  echo '********************************************************'
+  echo '* Please log  in to  Azure by  typing "az  login", and *'
+  echo '* repeat the "./upload-image.sh" command.              *'
+  echo '********************************************************'
+  exit 1
+fi
+
+####################################################
 # HELPERS                                          #
 ####################################################
 
@@ -64,7 +83,7 @@ usage() {
   echo ''
   echo '                    + "vm-name=..." (or "n=...") is mandatory'
   echo ''
-  echo '                    + "--image-id" will  be pre-populated with'
+  echo '                    + "--image" will  be  pre-populated  with'
   echo "                      the created image\'s ID"
   echo ''
   echo '                    + if  resource group  is omitted,  the one'
@@ -114,25 +133,6 @@ then
   printf "* Error: Missing required argument *\n"
   printf "************************************\n"
   usage
-  exit 1
-fi
-
-####################################################
-# AZ LOGIN CHECK                                   #
-####################################################
-
-# Making  sure  that  one   is  logged  in  (to  avoid
-# surprises down the line).
-# TODO Works flawlessly when  not logged in, but shows
-#      error when do logged in.
-#      > ./upload-image.sh: line 126: [: too many arguments
-if [ $(az account list 2> /dev/null) = [] ]
-then
-  echo
-  echo '********************************************************'
-  echo '* Please log  in to  Azure by  typing "az  login", and *'
-  echo '* repeat the "./upload-image.sh" command.              *'
-  echo '********************************************************'
   exit 1
 fi
 
