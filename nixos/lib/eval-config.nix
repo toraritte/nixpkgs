@@ -9,6 +9,12 @@
 # expressions are ever made modular at the top level) can just use
 # types.submodule instead of using eval-config.nix
 { # !!! system can be set modularly, would be nice to remove
+  # LAND https://nixos.org/nix/manual/#:~:text=builtins.currentSystem
+  # LAND > The  built-in value  currentSystem evaluates  to the
+  # LAND > Nix platform identifier for  the Nix installation on
+  # LAND > which  the expression  is being  evaluated, such  as
+  # LAND > "i686-linux" or "x86_64-darwin".
+  # LAND Relevant: https://github.com/NixOS/nix/pull/3071
   system ? builtins.currentSystem
 , # !!! is this argument needed any more? The pkgs argument can
   # be set modularly anyway.
@@ -41,12 +47,25 @@ let
       # default to the argument. That way this new default could propagate all
       # they way through, but has the last priority behind everything else.
       nixpkgs.system = lib.mkDefault system;
+      # LAND When `eval-config.nix` is called from
+      # LAND `nixos/maintainers/scripts/azure-new/examples/basic/image.nix`,
+      # LAND `nixpkgs.system`  ends  up  as  the
+      # LAND attribute set
+      # LAND ```nix
+      # LAND {
+      # LAND   _type = "override";
+      # LAND   priority = 1000;
+      # LAND   content = "x86_64-linux";
+      # LAND };
+      ```
 
       # Stash the value of the `system` argument. When using `nesting.children`
       # we want to have the same default value behavior (immediately above)
       # without any interference from the user's configuration.
       nixpkgs.initialSystem = system;
 
+      # LAND Figure out `lib.mkIf`
+      # LAND https://hyp.is/7yG5_N3cEeqdRa_GOPH1ew/nixos.org/nixpkgs/manual/
       _module.args.pkgs = lib.mkIf (pkgs_ != null) (lib.mkForce pkgs_);
     };
   };
