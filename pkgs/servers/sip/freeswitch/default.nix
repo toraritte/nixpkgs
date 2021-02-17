@@ -88,13 +88,25 @@ in
 
 stdenv.mkDerivation rec {
   pname = "freeswitch";
-  version = "1.10.5";
+  version = "0.1";
   src = fetchFromGitHub {
-    owner = "signalwire";
+    # owner = "signalwire";
+    owner = "rucc";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "18dhyb19k28dcm1i8mhqvvgm2phsrmrwyjmfn79glk8pdlalvcha";
+    # rev = "v${version}";
+    rev = "3f2f1e6ae65b721101e6720c25cf016a5682a09a";
+    sha256 = "0000000000000000000000000000000000000000000000000000";
   };
+
+  # HOW TO GET SHA256 HASH
+  # ----------------------
+  # $ nix-shell . -A freeswitch
+  # [..]
+  # wanted: sha256:0000000000000000000000000000000000000000000000000000
+  # got:    sha256:0iqy2pblpq4771mfsl06hm78qnsgsf7vasvlzm8m7r06mh3gfc3c
+
+  # QUESTION: Once dropping into `nix-shell`, how do I know what phases to execute by looking at this?
+  # QUESTION: When dropping into `nix-shell`, is this Nix expression (i.e., `freeswitch/default.nix`) executed?
 
   patches = [
     # https://github.com/signalwire/freeswitch/pull/812 fix mod_spandsp, mod_gsmopen build, drop when updating from 1.10.5
