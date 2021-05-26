@@ -12,77 +12,79 @@
 }:
 
 let
+  availableModules = callPackage ./modules.nix { };
 
-availableModules = callPackage ./modules.nix { };
+  # the default list from v1.8.7, except with applications/mod_signalwire also disabled
+  # defaultModules :: 
+  defaultModules =
+    mods:
+         [ mods.applications.commands
+           mods.applications.conference
+           mods.applications.db
+           mods.applications.dptools
+           mods.applications.enum
+           mods.applications.esf
+           mods.applications.expr
+           mods.applications.fifo
+           mods.applications.fsv
+           mods.applications.hash
+           mods.applications.httapi
+           mods.applications.sms
+           mods.applications.spandsp
+           mods.applications.valet_parking
+           mods.applications.voicemail
+           mods.applications.curl
 
-# the default list from v1.8.7, except with applications/mod_signalwire also disabled
-defaultModules = mods: with mods; [
-  applications.commands
-  applications.conference
-  applications.db
-  applications.dptools
-  applications.enum
-  applications.esf
-  applications.expr
-  applications.fifo
-  applications.fsv
-  applications.hash
-  applications.httapi
-  applications.sms
-  applications.spandsp
-  applications.valet_parking
-  applications.voicemail
+           mods.codecs.amr
+           mods.codecs.b64
+           mods.codecs.g723_1
+           mods.codecs.g729
+           mods.codecs.h26x
+           mods.codecs.opus
 
-  applications.curl
+           mods.databases.mariadb
+           mods.databases.pgsql
 
-  codecs.amr
-  codecs.b64
-  codecs.g723_1
-  codecs.g729
-  codecs.h26x
-  codecs.opus
+           mods.dialplans.asterisk
+           mods.dialplans.xml
 
-  databases.mariadb
-  databases.pgsql
+           mods.endpoints.loopback
+           mods.endpoints.rtc
+           mods.endpoints.skinny
+           mods.endpoints.sofia
+           mods.endpoints.verto
 
-  dialplans.asterisk
-  dialplans.xml
+           mods.event_handlers.cdr_csv
+           mods.event_handlers.cdr_sqlite
+           mods.event_handlers.event_socket
 
-  endpoints.loopback
-  endpoints.rtc
-  endpoints.skinny
-  endpoints.sofia
-  endpoints.verto
+           mods.formats.local_stream
+           mods.formats.native_file
+           mods.formats.png
+           mods.formats.sndfile
+           mods.formats.tone_stream
 
-  event_handlers.cdr_csv
-  event_handlers.cdr_sqlite
-  event_handlers.event_socket
+           mods.languages.lua
 
-  formats.local_stream
-  formats.native_file
-  formats.png
-  formats.sndfile
-  formats.tone_stream
+           mods.loggers.console
+           mods.loggers.logfile
+           mods.loggers.syslog
 
-  languages.lua
+           mods.say.en
 
-  loggers.console
-  loggers.logfile
-  loggers.syslog
+           mods.xml_int.cdr
+           mods.xml_int.rpc
+           mods.xml_int.scgi
+         ]
+      ++ lib.optionals stdenv.isLinux [ mods.endpoints.gsmopen ]
+  ;
 
-  say.en
+  enabledModules = (if modules != null then modules else defaultModules) availableModules;
 
-  xml_int.cdr
-  xml_int.rpc
-  xml_int.scgi
-] ++ lib.optionals stdenv.isLinux [ endpoints.gsmopen ];
-
-enabledModules = (if modules != null then modules else defaultModules) availableModules;
-
-modulesConf = let
-  lst = builtins.map (mod: mod.path) enabledModules;
-  str = lib.strings.concatStringsSep "\n" lst;
-  in builtins.toFile "modules.conf" str;
+  modulesConf = let
+    lst = builtins.map (mod: mod.path) enabledModules;
+    str = lib.strings.concatStringsSep "\n" lst;
+    in builtins.toFile "modules.conf" str;
 
 in
 
@@ -96,6 +98,8 @@ stdenv.mkDerivation rec {
     sha256 = "1i5n06pds3kvzhhzfwvhwxnvcb2p2fcr8k52157aplm2i7prl4q2";
   };
 
+  # COMMENT: this is fixed in 1.10.6, but keeping for future reference
+  #          (will definitely be needed when adding playback speed pitch fix)
   # patches = [
   #   # https://github.com/signalwire/freeswitch/pull/812 fix mod_spandsp, mod_gsmopen build, drop when updating from 1.10.5
   #   (fetchpatch {
@@ -103,18 +107,29 @@ stdenv.mkDerivation rec {
   #     sha256 = "0h2bmifsyyasxjka3pczbmqym1chvz91fmb589njrdbwpkjyvqh3";
   #   })
   # ];
+
   postPatch = ''
+    #########################################################################
+    # Needed, even though libvpx is a video codec, because                  #
+    # it is in FreeSWITCH core; won't compile otherwise                     #
+    # https://freeswitch.org/confluence/display/FREESWITCH/Debian+8+Jessie  #
+    #########################################################################
+
     patchShebangs     libs/libvpx/build/make/rtcd.pl
-    substituteInPlace libs/libvpx/build/make/configure.sh \
+    substituteInPlace \
+      libs/libvpx/build/make/configure.sh \
       --replace AS=\''${AS} AS=yasm
 
-    # Disable advertisement banners
-    for f in src/include/cc.h libs/esl/src/include/cc.h; do
-      {
-        echo 'const char *cc = "";'
-        echo 'const char *cc_s = "";'
-      } > $f
-    done
+    #########################################################################
+    # To disable advertisement banners, uncomment the lines below           #
+    #########################################################################
+
+    # for f in src/include/cc.h libs/esl/src/include/cc.h; do
+    #   {
+    #     echo 'const char *cc = "";'
+    #     echo 'const char *cc_s = "";'
+    #   } > $f
+    # done
   '';
 
   nativeBuildInputs = [ pkg-config autoreconfHook ];

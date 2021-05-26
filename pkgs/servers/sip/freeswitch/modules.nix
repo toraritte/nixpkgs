@@ -15,6 +15,7 @@
 
 let
 
+# mk :: String -> [ Derivation ] -> { path :: String, inputs :: [ Derivation ] }
 mk = path: inputs: { inherit path inputs; };
 
 in
